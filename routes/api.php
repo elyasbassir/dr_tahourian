@@ -2,18 +2,13 @@
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\controller_auth;
+use App\Http\Middleware\token_JWT_valid;
 
-/*
-|--------------------------------------------------------------------------
-| API Routes
-|--------------------------------------------------------------------------
-|
-| Here is where you can register API routes for your application. These
-| routes are loaded by the RouteServiceProvider and all of them will
-| be assigned to the "api" middleware group. Make something great!
-|
-*/
+Route::POST('/register', [controller_auth::class, 'register'])->name('register_user');
+Route::POST('/login', [controller_auth::class, 'login'])->name('login_user');
 
-Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
-    return $request->user();
+// برای چک کردن درست بودن توکن کلاینت
+Route::middleware(token_JWT_valid::class)->group(function (){
+
 });
