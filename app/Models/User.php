@@ -13,7 +13,7 @@ use Tymon\JWTAuth\Facades\JWTAuth;
 class User extends Authenticatable implements JWTSubject
 {
     protected $table = 'users';
-    protected $fillable = ['phone', 'password'];
+    protected $fillable = ['phone', 'password','activated','address','level'];
     public $timestamps = true;
     protected $hidden = [
         'password',
