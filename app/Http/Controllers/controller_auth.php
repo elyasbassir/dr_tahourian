@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use http\Client\Response;
 use Illuminate\Http\Request;
 use App\Models\User;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Validator;
 use mysql_xdevapi\Exception;
 use Tymon\JWTAuth\Facades\JWTAuth;
@@ -42,9 +43,10 @@ class controller_auth extends Controller
         $text="
         سلام
         {$verificationCode} کد تائید شما در سایت طهوریان
+        لغو 11
         ";
-        help::send_sms($text,["09153359833"]);
-        return response()->json(['success' => true, ['token' => $token]], 201);
+        help::send_sms($text,array($request->phone));
+        return response()->json(['success' => true,  'token'=> $token], 201);
     }
 
     public function login(Request $request)
@@ -87,15 +89,37 @@ class controller_auth extends Controller
         $storedCode = Cache::get('verification_code_' . $phone);
 
         if ($storedCode && $enteredCode == $storedCode) {
-
             User::where('phone',$phone)->update(['activated'=>true]);
             Cache::forget('verification_code_' . $phone); // پاک کردن کد از کش
             // ارسال پاسخ موفقیت آمیز به کاربر از طریق API Response
+            $data = help::add_user_in_crm([
+                'name'=>'تعیین نشده',
+                'last_name'=>'تعیین نشده',
+                'company'=>'تعیین نشده',
+                'stable_phone'=>'تعیین نشده',
+                'phone'=>$phone,
+                'gender'=>'0',
+                'job'=>'تعیین نشده',
+                'email'=>'تعیین نشده',
+                'address'=>'تعیین نشده',
+                'birthdate'=>'1000-10-10',
+                'marriagedate'=>'1000-10-10',
+                'partnerdate'=>'1000-10-10',
+                'ncode'=>'تعیین نشده',
+                'explain'=>'',
+                'mobileintroducer'=>'تعیین نشده',
+            ]);
+            $text="
+        ثبت نام شما در سایت طهوریان با موفقیت انجام شد.
+        با تشکر از شما
+        لغو 11
+        ";
+            help::send_sms($text,[$phone]);
             return response()->json(['status' => true], 200);
         } else {
             // کد تایید نامعتبر است
             // ارسال پاسخ ناموفقیت آمیز به کاربر از طریق API Response
-            return response()->json(['status' => false], 400);
+            return response()->json(['status' => false], 200);
         }
 
     }
@@ -113,12 +137,62 @@ class controller_auth extends Controller
         $text="
         سلام
         {$verificationCode} کد تائید شما در سایت طهوریان
+        لغو 11
         ";
-        help::send_sms($text,["09153359833"]);
+        help::send_sms($text,[$phone]);
         return response()->json(['status'=>"3"]);
         }else{
             return response()->json(['status'=>'1']);
         }
     }
+        public function update_user(Request $request){
+            if(!Auth::guard('api')->check()){
+                return response()->json(['error'=>'0'],401);
+            }
+            $validator = Validator::make($request->all(), [
+                'firstname' => 'required|max:255|string',
+                'lastname' => 'required|max:255|string',
+                'companyname' => 'required| max:255|string',
+                'phone' => 'required|numeric',
+                'gender' => 'required|max:255|numeric',
+                'job' => 'required|max:255|string',
+                'mail' => 'required|max:255|email',
+                'address' => 'required|max:255|string',
+                'birthdate' => 'required|max:255|date',
+                'marriagedate' => 'required|max:255|date',
+                'partnerdate' => 'required|max:255|date',
+                'ncode' => 'required|numeric',
+                'explain' => 'max:1000',
+            ]);
+            if ($validator->fails()) {
+                return response()->json(['error', $validator->messages()]);
+            }
+            $token = JWTAuth::parseToken();
+            $user = $token->authenticate();
+            if($user->activated == true){
+                $data = help::update_user([
+                    'name'=>$request->firstname,
+                    'last_name'=>$request->lastname,
+                    'company'=>$request->companyname,
+                    'stable_phone'=>$request->phone,
+                    'phone'=>$user->phone,
+                    'gender'=>$request->gender,
+                    'job'=>$request->job,
+                    'email'=>$request->mail,
+                    'address'=>$request->address,
+                    'birthdate'=>$request->birthdate,
+                    'marriagedate'=>$request->marriagedate,
+                    'partnerdate'=>$request->partnerdate,
+                    'ncode'=>$request->ncode,
+                    'explain'=>$request->explain,
+                    'mobileintroducer'=>'',
+                    'idcustomer'=>$user->phone
+                ]);
+                dd($data);
+                return response()->json(['status'=>"2"]);
+            }else{
+                return response()->json(['status'=>1]);
+            }
+        }
 
 }
